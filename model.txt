@@ -1,4 +1,276 @@
 {
+    "tag_caps": {
+        "#": {
+            "ALL_UPPER": 1,
+            "LOWER": 1,
+            "SYMBOL": 142,
+            "UPPER": 1
+        },
+        "$": {
+            "ALL_UPPER": 188,
+            "LOWER": 1,
+            "SYMBOL": 7184,
+            "UPPER": 1
+        },
+        "''": {
+            "ALL_UPPER": 1,
+            "LOWER": 1,
+            "SYMBOL": 6919,
+            "UPPER": 1
+        },
+        ",": {
+            "ALL_UPPER": 1,
+            "LOWER": 3,
+            "SYMBOL": 48724,
+            "UPPER": 1
+        },
+        "-LRB-": {
+            "ALL_UPPER": 1,
+            "LOWER": 1,
+            "SYMBOL": 1366,
+            "UPPER": 1
+        },
+        "-RRB-": {
+            "ALL_UPPER": 1,
+            "LOWER": 1,
+            "SYMBOL": 1376,
+            "UPPER": 1
+        },
+        ".": {
+            "ALL_UPPER": 1,
+            "LOWER": 1,
+            "SYMBOL": 39478,
+            "UPPER": 1
+        },
+        ":": {
+            "ALL_UPPER": 1,
+            "LOWER": 1,
+            "SYMBOL": 4772,
+            "UPPER": 1
+        },
+        "CC": {
+            "ALL_UPPER": 14,
+            "LOWER": 20512,
+            "SYMBOL": 1037,
+            "UPPER": 2384
+        },
+        "CD": {
+            "ALL_UPPER": 14,
+            "LOWER": 10467,
+            "SYMBOL": 25612,
+            "UPPER": 475
+        },
+        "DT": {
+            "ALL_UPPER": 862,
+            "LOWER": 72266,
+            "SYMBOL": 1,
+            "UPPER": 8714
+        },
+        "EX": {
+            "ALL_UPPER": 1,
+            "LOWER": 565,
+            "SYMBOL": 1,
+            "UPPER": 298
+        },
+        "FW": {
+            "ALL_UPPER": 2,
+            "LOWER": 215,
+            "SYMBOL": 1,
+            "UPPER": 17
+        },
+        "IN": {
+            "ALL_UPPER": 41,
+            "LOWER": 93018,
+            "SYMBOL": 1,
+            "UPPER": 5494
+        },
+        "JJ": {
+            "ALL_UPPER": 147,
+            "LOWER": 55262,
+            "SYMBOL": 963,
+            "UPPER": 4845
+        },
+        "JJR": {
+            "ALL_UPPER": 4,
+            "LOWER": 3165,
+            "SYMBOL": 1,
+            "UPPER": 69
+        },
+        "JJS": {
+            "ALL_UPPER": 1,
+            "LOWER": 1824,
+            "SYMBOL": 1,
+            "UPPER": 122
+        },
+        "LS": {
+            "ALL_UPPER": 1,
+            "LOWER": 10,
+            "SYMBOL": 20,
+            "UPPER": 6
+        },
+        "MD": {
+            "ALL_UPPER": 3,
+            "LOWER": 9558,
+            "SYMBOL": 199,
+            "UPPER": 43
+        },
+        "NN": {
+            "ALL_UPPER": 583,
+            "LOWER": 124770,
+            "SYMBOL": 4946,
+            "UPPER": 2636
+        },
+        "NNP": {
+            "ALL_UPPER": 8538,
+            "LOWER": 134,
+            "SYMBOL": 35,
+            "UPPER": 82759
+        },
+        "NNPS": {
+            "ALL_UPPER": 42,
+            "LOWER": 1,
+            "SYMBOL": 1,
+            "UPPER": 2631
+        },
+        "NNS": {
+            "ALL_UPPER": 176,
+            "LOWER": 57232,
+            "SYMBOL": 116,
+            "UPPER": 2332
+        },
+        "PDT": {
+            "ALL_UPPER": 1,
+            "LOWER": 336,
+            "SYMBOL": 1,
+            "UPPER": 34
+        },
+        "POS": {
+            "ALL_UPPER": 8,
+            "LOWER": 1,
+            "SYMBOL": 8693,
+            "UPPER": 1
+        },
+        "PRP": {
+            "ALL_UPPER": 1188,
+            "LOWER": 12938,
+            "SYMBOL": 11,
+            "UPPER": 3299
+        },
+        "PRP$": {
+            "ALL_UPPER": 1,
+            "LOWER": 8004,
+            "SYMBOL": 1,
+            "UPPER": 402
+        },
+        "RB": {
+            "ALL_UPPER": 17,
+            "LOWER": 28508,
+            "SYMBOL": 4,
+            "UPPER": 2441
+        },
+        "RBR": {
+            "ALL_UPPER": 1,
+            "LOWER": 1682,
+            "SYMBOL": 1,
+            "UPPER": 86
+        },
+        "RBS": {
+            "ALL_UPPER": 1,
+            "LOWER": 427,
+            "SYMBOL": 1,
+            "UPPER": 24
+        },
+        "RP": {
+            "ALL_UPPER": 3,
+            "LOWER": 2655,
+            "SYMBOL": 1,
+            "UPPER": 4
+        },
+        "SYM": {
+            "ALL_UPPER": 1,
+            "LOWER": 33,
+            "SYMBOL": 22,
+            "UPPER": 3
+        },
+        "TO": {
+            "ALL_UPPER": 3,
+            "LOWER": 22203,
+            "SYMBOL": 1,
+            "UPPER": 151
+        },
+        "UH": {
+            "ALL_UPPER": 3,
+            "LOWER": 49,
+            "SYMBOL": 1,
+            "UPPER": 45
+        },
+        "VB": {
+            "ALL_UPPER": 17,
+            "LOWER": 26169,
+            "SYMBOL": 2,
+            "UPPER": 250
+        },
+        "VBD": {
+            "ALL_UPPER": 25,
+            "LOWER": 29805,
+            "SYMBOL": 10,
+            "UPPER": 49
+        },
+        "VBG": {
+            "ALL_UPPER": 8,
+            "LOWER": 14296,
+            "SYMBOL": 1,
+            "UPPER": 542
+        },
+        "VBN": {
+            "ALL_UPPER": 17,
+            "LOWER": 19730,
+            "SYMBOL": 1,
+            "UPPER": 276
+        },
+        "VBP": {
+            "ALL_UPPER": 15,
+            "LOWER": 11761,
+            "SYMBOL": 648,
+            "UPPER": 67
+        },
+        "VBZ": {
+            "ALL_UPPER": 25,
+            "LOWER": 20313,
+            "SYMBOL": 1222,
+            "UPPER": 112
+        },
+        "WDT": {
+            "ALL_UPPER": 2,
+            "LOWER": 4255,
+            "SYMBOL": 1,
+            "UPPER": 36
+        },
+        "WP": {
+            "ALL_UPPER": 7,
+            "LOWER": 2167,
+            "SYMBOL": 1,
+            "UPPER": 189
+        },
+        "WP$": {
+            "ALL_UPPER": 1,
+            "LOWER": 168,
+            "SYMBOL": 1,
+            "UPPER": 1
+        },
+        "WRB": {
+            "ALL_UPPER": 8,
+            "LOWER": 1802,
+            "SYMBOL": 1,
+            "UPPER": 333
+        },
+        "``": {
+            "ALL_UPPER": 1,
+            "LOWER": 1,
+            "SYMBOL": 7091,
+            "UPPER": 1
+        }
+    },
     "tag_counts": {
         "#": 143,
         "$": 7381,

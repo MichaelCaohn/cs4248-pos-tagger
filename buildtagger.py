@@ -11,6 +11,10 @@ import json
 START = '<s>'
 END = '<\s>'
 UNK = '<UNK>'
+ALL_UPPER = 'ALL_UPPER'
+UPPER = 'UPPER'
+LOWER = 'LOWER'
+SYMBOL = 'SYMBOL'
 
 def train_model(train_file, model_file):
     reader = open(train_file)
@@ -21,6 +25,7 @@ def train_model(train_file, model_file):
     tag_transitions = defaultdict(lambda:defaultdict(lambda:0))
     word_emissions = defaultdict(lambda:defaultdict(lambda:0))
     vocab = defaultdict(lambda:0)
+    tag_caps = defaultdict(lambda:defaultdict(lambda:0))
 
     for i in range(0, len(out_lines)):
         cur_out_line = out_lines[i].strip()
@@ -39,10 +44,24 @@ def train_model(train_file, model_file):
             word_emissions[tag][word] += 1
             prev_tag = tag
             vocab[word] += 1
+            if word.isupper():
+                tag_caps[tag][ALL_UPPER] += 1
+            elif word[0].isupper():
+                tag_caps[tag][UPPER] += 1
+            elif word[0].islower():
+                tag_caps[tag][LOWER] += 1
+            else:
+                tag_caps[tag][SYMBOL] += 1
 
         tag = END
         tag_counts[END] += 1
         tag_transitions[prev_tag][tag] += 1
+
+    for tag in tag_caps.values():
+        if tag[ALL_UPPER] == 0: tag[ALL_UPPER] = 1
+        if tag[LOWER] == 0: tag[LOWER] = 1
+        if tag[UPPER] == 0: tag[UPPER] = 1
+        if tag[SYMBOL] == 0: tag[SYMBOL] = 1
 
     for tag in tag_counts.keys():
         unknown_count = len(word_emissions[tag].keys()) # witten bell assumption
@@ -55,6 +74,7 @@ def train_model(train_file, model_file):
         'tag_counts':tag_counts, 
         'tag_transitions':tag_transitions,
         'word_emissions':word_emissions,
+        'tag_caps':tag_caps,
         'vocab':vocab,
     }, indent=4, sort_keys=True))
     file.close()

@@ -12,10 +12,14 @@ from collections import defaultdict
 START = '<s>'
 END = '<\s>'
 UNK = '<UNK>'
+ALL_UPPER = 'ALL_UPPER'
+UPPER = 'UPPER'
+LOWER = 'LOWER'
+SYMBOL = 'SYMBOL'
 
 # TODO: Make the number of tags constant
 
-def viterbi(words, tag_counts, tag_transitions, start_transition, word_emissions, vocab):
+def viterbi(words, tag_counts, tag_transitions, start_transition, word_emissions, tag_caps, vocab):
     tags = list(tag_transitions.keys())
     vocab_size = len(vocab.keys())
 
@@ -25,14 +29,23 @@ def viterbi(words, tag_counts, tag_transitions, start_transition, word_emissions
     word = words[0]
     for s in range(len(tags)):
         tag = tags[s]
-        if tag == START or tag == END: raise Exception
         if word not in word_emissions[tag]:
             emission = math.log2(word_emissions[tag][UNK]/(tag_counts[tag] * (vocab_size-len(tag_transitions[tag].keys()))))
         else:
             emission = math.log2(word_emissions[tag][word]/tag_counts[tag])
+        cap_count = sum(tag_caps[tag].values())
+        if word.isupper():
+            capitalisation = math.log2(tag_caps[tag][ALL_UPPER]/cap_count)
+        elif word[0].isupper():
+            capitalisation = math.log2(tag_caps[tag][UPPER]/cap_count)
+        elif word[0].islower():
+            capitalisation = math.log2(tag_caps[tag][LOWER]/cap_count)
+        else:
+            capitalisation = math.log2(tag_caps[tag][SYMBOL]/cap_count)
         matrix[s][0] = (
             math.log2(start_transition[tag]/tag_counts[START])
             + emission
+            + capitalisation
         )
         backpointer[s][0] = 0
 
@@ -47,6 +60,15 @@ def viterbi(words, tag_counts, tag_transitions, start_transition, word_emissions
                 emission = math.log2(word_emissions[tag][UNK]/(tag_counts[tag] * (vocab_size-len(tag_transitions[tag].keys()))))
             else:
                 emission = math.log2(word_emissions[tag][word]/tag_counts[tag])
+            cap_count = sum(tag_caps[tag].values())
+            if word.isupper():
+                capitalisation = math.log2(tag_caps[tag][ALL_UPPER]/cap_count)
+            elif word[0].isupper():
+                capitalisation = math.log2(tag_caps[tag][UPPER]/cap_count)
+            elif word[0].islower():
+                capitalisation = math.log2(tag_caps[tag][LOWER]/cap_count)
+            else:
+                capitalisation = math.log2(tag_caps[tag][SYMBOL]/cap_count)
             max = None
             argmax = None
             for s2 in range(len(tags)):
@@ -55,6 +77,7 @@ def viterbi(words, tag_counts, tag_transitions, start_transition, word_emissions
                     matrix[s2][t-1]
                     + math.log2(tag_transitions[tag2][tag]/tag_counts[tag2])
                     + emission
+                    + capitalisation
                 )
                 if max is None or p > max: 
                     max = p
@@ -95,6 +118,7 @@ def tag_sentence(test_file, model_file, out_file):
     tag_transitions = {key:defaultdict(lambda:1,value) for (key,value) in json_data['tag_transitions'].items()}
     start_transition = defaultdict(lambda:1, tag_transitions.pop(START))
     word_emissions = json_data['word_emissions']
+    tag_caps = json_data['tag_caps']
     vocab = json_data['vocab']
     reader = open(test_file)
     test_lines = reader.readlines()
@@ -107,7 +131,7 @@ def tag_sentence(test_file, model_file, out_file):
         cur_out_line = test_lines[i].strip()
         words = cur_out_line.split(' ')
 
-        tagged_words = viterbi(words, tag_counts, tag_transitions, start_transition, word_emissions, vocab)
+        tagged_words = viterbi(words, tag_counts, tag_transitions, start_transition, word_emissions, tag_caps, vocab)
         # print(tagged_words)
         string = ""
         for word, tag in tagged_words:
