@@ -25,8 +25,7 @@ def viterbi(words, tag_counts, tag_transitions, start_transition, word_emissions
         tag = tags[s]
         if tag == START or tag == END: raise Exception
         matrix[s][0] = (
-            math.log2(start_transition[tag]) 
-            - math.log2(tag_counts[START])
+            math.log2(start_transition[tag]/tag_counts[START])
             + math.log2(word_emissions[tag][word]/tag_counts[tag])
         )
         backpointer[s][0] = 0
@@ -35,15 +34,14 @@ def viterbi(words, tag_counts, tag_transitions, start_transition, word_emissions
         word = words[t]
         for s in range(len(tags)):
             tag = tags[s]
-            emission = math.log2(word_emissions[tag][word]) # - math.log2(tag_counts[tag])
+            emission = math.log2(word_emissions[tag][word]/tag_counts[tag])
             max = None
             argmax = None
             for s2 in range(len(tags)):
                 tag2 = tags[s2]
                 p = (
                     matrix[s2][t-1]
-                    + math.log2(tag_transitions[tag2][tag])
-                    - math.log2(tag_counts[tag2])
+                    + math.log2(tag_transitions[tag2][tag]/tag_counts[tag2])
                     + emission
                 )
                 if max is None or p > max: 
@@ -59,8 +57,7 @@ def viterbi(words, tag_counts, tag_transitions, start_transition, word_emissions
     for s in range(len(tags)):
         p = (
             matrix[s][t]
-            + math.log2(tag_transitions[tags[s]][END])
-            - math.log2(tag_counts[tags[s]])
+            + math.log2(tag_transitions[tags[s]][END]/tag_counts[tags[s]])
         )
         if max is None or p > max:
             max = p
@@ -70,8 +67,6 @@ def viterbi(words, tag_counts, tag_transitions, start_transition, word_emissions
     tagged_words = [(word, None) for word in words]
     for t in range(len(words)-1, -1, -1):
         word = tagged_words[t][0]
-        # print(t, len(tagged_words))
-        # print(s, tags)
         tagged_words[t] = (word, tags[s])
         s = backpointer[s][t]
     
@@ -88,7 +83,6 @@ def tag_sentence(test_file, model_file, out_file):
     tag_transitions = {key:defaultdict(lambda:1,value) for (key,value) in json_data['tag_transitions'].items()}
     start_transition = defaultdict(lambda:1, tag_transitions.pop(START))
     word_emissions = {key:defaultdict(lambda:1,value) for (key,value) in json_data['word_emissions'].items()}
-
     reader = open(test_file)
     test_lines = reader.readlines()
     reader.close()
