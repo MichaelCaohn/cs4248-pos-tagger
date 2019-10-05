@@ -19,26 +19,34 @@ def viterbi(words, tag_counts, tag_transitions, start_transition, word_emissions
 
     matrix = [[None] * len(words) for i in range(len(tags))]
     backpointer = [[None] * len(words) for i in range(len(tags))]
-    
 
     word = words[0]
     for s in range(len(tags)):
         tag = tags[s]
         if tag == START or tag == END: raise Exception
-        matrix[s][0] = start_transition[tag]/tag_counts[START] * word_emissions[tag][word]
+        matrix[s][0] = (
+            math.log2(start_transition[tag]) 
+            - math.log2(tag_counts[START])
+            + math.log2(word_emissions[tag][word]/tag_counts[tag])
+        )
         backpointer[s][0] = 0
 
     for t in range(1, len(words)):
         word = words[t]
         for s in range(len(tags)):
             tag = tags[s]
-            emission = word_emissions[tag][word]/tag_counts[tag]
-            max = -1
+            emission = math.log2(word_emissions[tag][word]) # - math.log2(tag_counts[tag])
+            max = None
             argmax = None
             for s2 in range(len(tags)):
                 tag2 = tags[s2]
-                p = matrix[s2][t-1] * tag_transitions[tag2][tag]/tag_counts[tag2] * emission
-                if p > max: 
+                p = (
+                    matrix[s2][t-1]
+                    + math.log2(tag_transitions[tag2][tag])
+                    - math.log2(tag_counts[tag2])
+                    + emission
+                )
+                if max is None or p > max: 
                     max = p
                     argmax = s2
             matrix[s][t] = max
@@ -46,11 +54,15 @@ def viterbi(words, tag_counts, tag_transitions, start_transition, word_emissions
     
 
     t = len(words)-1
-    max = -1
+    max = None
     argmax = None
     for s in range(len(tags)):
-        p = matrix[s][t]*tag_transitions[tags[s]][END]/tag_counts[tags[s]]
-        if p > max:
+        p = (
+            matrix[s][t]
+            + math.log2(tag_transitions[tags[s]][END])
+            - math.log2(tag_counts[tags[s]])
+        )
+        if max is None or p > max:
             max = p
             argmax = s
 
@@ -58,6 +70,8 @@ def viterbi(words, tag_counts, tag_transitions, start_transition, word_emissions
     tagged_words = [(word, None) for word in words]
     for t in range(len(words)-1, -1, -1):
         word = tagged_words[t][0]
+        # print(t, len(tagged_words))
+        # print(s, tags)
         tagged_words[t] = (word, tags[s])
         s = backpointer[s][t]
     
