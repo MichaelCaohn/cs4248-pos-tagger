@@ -11,11 +11,13 @@ from collections import defaultdict
 
 START = '<s>'
 END = '<\s>'
+UNK = '<UNK>'
 
 # TODO: Make the number of tags constant
 
-def viterbi(words, tag_counts, tag_transitions, start_transition, word_emissions):
+def viterbi(words, tag_counts, tag_transitions, start_transition, word_emissions, vocab):
     tags = list(tag_transitions.keys())
+    vocab_size = len(vocab.keys())
 
     matrix = [[None] * len(words) for i in range(len(tags))]
     backpointer = [[None] * len(words) for i in range(len(tags))]
@@ -24,9 +26,13 @@ def viterbi(words, tag_counts, tag_transitions, start_transition, word_emissions
     for s in range(len(tags)):
         tag = tags[s]
         if tag == START or tag == END: raise Exception
+        if word not in word_emissions[tag]:
+            emission = math.log2(word_emissions[tag][UNK]/(tag_counts[tag] * (vocab_size-len(tag_transitions[tag].keys()))))
+        else:
+            emission = math.log2(word_emissions[tag][word]/tag_counts[tag])
         matrix[s][0] = (
             math.log2(start_transition[tag]/tag_counts[START])
-            + math.log2(word_emissions[tag][word]/tag_counts[tag])
+            + emission
         )
         backpointer[s][0] = 0
 
@@ -34,7 +40,13 @@ def viterbi(words, tag_counts, tag_transitions, start_transition, word_emissions
         word = words[t]
         for s in range(len(tags)):
             tag = tags[s]
-            emission = math.log2(word_emissions[tag][word]/tag_counts[tag])
+            # print(word, tag)
+            # print(word_emissions[tag][word])
+            # print(tag_counts[tag])
+            if word not in word_emissions[tag]:
+                emission = math.log2(word_emissions[tag][UNK]/(tag_counts[tag] * (vocab_size-len(tag_transitions[tag].keys()))))
+            else:
+                emission = math.log2(word_emissions[tag][word]/tag_counts[tag])
             max = None
             argmax = None
             for s2 in range(len(tags)):
@@ -82,7 +94,8 @@ def tag_sentence(test_file, model_file, out_file):
     tag_counts = defaultdict(lambda:1, json_data['tag_counts'])
     tag_transitions = {key:defaultdict(lambda:1,value) for (key,value) in json_data['tag_transitions'].items()}
     start_transition = defaultdict(lambda:1, tag_transitions.pop(START))
-    word_emissions = {key:defaultdict(lambda:1,value) for (key,value) in json_data['word_emissions'].items()}
+    word_emissions = json_data['word_emissions']
+    vocab = json_data['vocab']
     reader = open(test_file)
     test_lines = reader.readlines()
     reader.close()
@@ -94,7 +107,7 @@ def tag_sentence(test_file, model_file, out_file):
         cur_out_line = test_lines[i].strip()
         words = cur_out_line.split(' ')
 
-        tagged_words = viterbi(words, tag_counts, tag_transitions, start_transition, word_emissions)
+        tagged_words = viterbi(words, tag_counts, tag_transitions, start_transition, word_emissions, vocab)
         # print(tagged_words)
         string = ""
         for word, tag in tagged_words:
