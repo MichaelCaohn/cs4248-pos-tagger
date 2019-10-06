@@ -26,6 +26,7 @@ def train_model(train_file, model_file):
     word_emissions = defaultdict(lambda:defaultdict(lambda:0))
     vocab = defaultdict(lambda:0)
     tag_caps = defaultdict(lambda:defaultdict(lambda:0))
+    tag_suffixes = defaultdict(lambda:defaultdict(lambda:defaultdict(lambda:0)))
 
     for i in range(0, len(out_lines)):
         cur_out_line = out_lines[i].strip()
@@ -52,6 +53,11 @@ def train_model(train_file, model_file):
                 tag_caps[tag][LOWER] += 1
             else:
                 tag_caps[tag][SYMBOL] += 1
+            
+            for k in range(1, 5):
+                if len(word) < k: break
+                if not word[-k:].islower(): break
+                tag_suffixes[k][word[-k:]][tag] += 1
 
         tag = END
         tag_counts[END] += 1
@@ -67,6 +73,10 @@ def train_model(train_file, model_file):
         unknown_count = len(word_emissions[tag].keys()) # witten bell assumption
         tag_counts[tag] += unknown_count
         word_emissions[tag][UNK] = unknown_count
+
+    # for tag, d in tag_suffixes.items():
+    #     for k in range(1, 5):
+    #         unknown_count = len(d[k].keys()) # witten bell assumption
     
     
     file = open(model_file, 'w')
@@ -75,8 +85,9 @@ def train_model(train_file, model_file):
         'tag_transitions':tag_transitions,
         'word_emissions':word_emissions,
         'tag_caps':tag_caps,
+        'tag_suffixes':tag_suffixes,
         'vocab':vocab,
-    }, indent=4, sort_keys=True))
+    }, indent=2, sort_keys=True))
     file.close()
 
     print('Finished...')
