@@ -19,7 +19,7 @@ SYMBOL = 'SYMBOL'
 
 # TODO: Make the number of tags constant
 
-def viterbi(words, tag_counts, tag_transitions, start_transition, word_emissions, tag_caps, tag_suffixes, vocab):
+def viterbi(words, tag_counts, tag_transitions, start_transition, word_emissions, tag_caps, tag_suffixes, vocab, vocab_suffix_count):
     tags = list(tag_transitions.keys())
     vocab_size = len(vocab.keys())
 
@@ -48,16 +48,23 @@ def viterbi(words, tag_counts, tag_transitions, start_transition, word_emissions
         for k in range(4, 5):
             # TODO: try backoff instead of interpolation
             if len(word) < k: break
-            if not word[-k:].islower(): break
-            
-            suf = word[-k:]
-            ps = math.log2(tag_suffixes[k][suf][tag]/sum([sum(value.values()) for key, value in tag_suffixes[k].items()]))
-            # print(sum(tag_suffixes[k][suf].values(), sum([sum(value.values()) for key, value in tag_suffixes[k].items()]) ))
-            # pts = math.log2(tag_suffixes[k][suf][tag]/sum(tag_suffixes[k][suf].values()))
-            pt = math.log2(tag_counts[tag]/sum(tag_counts.values()))
+            # if not word[-k:].islower(): break
+            suffixes = tag_suffixes[k][tag]
+            T = len(suffixes.keys())
+            C = sum(suffixes.values())
+            if T == 0:
+                suffix += math.log2(1/10000000000)
+            else: 
+                suf = word[-k:]
+                if suf not in suffixes:
+                    pst = math.log2(T/ ((vocab_suffix_count[k] - T) * (C + T)))
+                else:
+                    pst = math.log2(suffixes[suf]/(sum(suffixes.values()) + len(suffixes.keys())))
 
-            suffix += ps - pt
+                suffix += pst
         
+        # suffix = math.tanh(suffix)
+
         matrix[s][0] = (
             math.log2(start_transition[tag]/tag_counts[START])
             + emission
@@ -91,16 +98,24 @@ def viterbi(words, tag_counts, tag_transitions, start_transition, word_emissions
             for k in range(4, 5):
                 # TODO: try backoff instead of interpolation
                 if len(word) < k: break
-                if not word[-k:].islower(): break
+                # if not word[-k:].islower(): break
                 
-                suf = word[-k:]
-                ps = math.log2(tag_suffixes[k][suf][tag]/sum([sum(value.values()) for key, value in tag_suffixes[k].items()]))
-                # print(sum(tag_suffixes[k][suf].values(), sum([sum(value.values()) for key, value in tag_suffixes[k].items()]) ))
-                # pts = math.log2(tag_suffixes[k][suf][tag]/sum(tag_suffixes[k][suf].values()))
-                pt = math.log2(tag_counts[tag]/sum(tag_counts.values()))
+                suffixes = tag_suffixes[k][tag]
+                T = len(suffixes.keys())
+                C = sum(suffixes.values())
+                if T == 0:
+                    suffix += math.log2(1/10000000000)
+                else: 
+                    suf = word[-k:]
+                    if suf not in suffixes:
+                        pst = math.log2(T/ ((vocab_suffix_count[k] - T) * (C + T)))
+                    else:
+                        pst = math.log2(suffixes[suf]/(sum(suffixes.values()) + len(suffixes.keys())))
 
-                suffix += ps - pt
-
+                    suffix += pst
+            
+            # suffix = math.tanh(suffix)
+            
             max = None
             argmax = None
             for s2 in range(len(tags)):
@@ -158,9 +173,11 @@ def tag_sentence(test_file, model_file, out_file):
     word_emissions = json_data['word_emissions']
     tag_caps = json_data['tag_caps']
     tag_suffixes = {int(key): value for key, value in json_data['tag_suffixes'].items()}
-    for key, value in tag_suffixes.items():
-        tag_suffixes[key] = defaultdict(lambda:defaultdict(lambda:1), {suffix:defaultdict(lambda:1, tag) for suffix, tag in value.items()})
+    for k in range(4, 5):
+        tag_suffixes[k] = defaultdict(lambda:defaultdict(lambda:1), tag_suffixes[k]) # TODO: account for tags that won't have k-length suffix
     vocab = json_data['vocab']
+
+    vocab_suffix_count = {int(k):len(v.keys()) for k, v in json_data['vocab_suffix'].items()}
     reader = open(test_file)
     test_lines = reader.readlines()
     reader.close()
@@ -172,7 +189,7 @@ def tag_sentence(test_file, model_file, out_file):
         cur_out_line = test_lines[i].strip()
         words = cur_out_line.split(' ')
 
-        tagged_words = viterbi(words, tag_counts, tag_transitions, start_transition, word_emissions, tag_caps, tag_suffixes, vocab)
+        tagged_words = viterbi(words, tag_counts, tag_transitions, start_transition, word_emissions, tag_caps, tag_suffixes, vocab, vocab_suffix_count)
         # print(tagged_words)
         string = ""
         for word, tag in tagged_words:
