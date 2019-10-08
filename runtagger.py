@@ -16,10 +16,12 @@ ALL_UPPER = 'ALL_UPPER'
 UPPER = 'UPPER'
 LOWER = 'LOWER'
 SYMBOL = 'SYMBOL'
+HYPHEN = 'HYPHEN'
+NO_HYPHEN = 'NO_HYPHEN'
 
 # TODO: Make the number of tags constant
 
-def viterbi(words, tag_counts, tag_transitions, start_transition, word_emissions, tag_caps, tag_suffixes, vocab, vocab_suffix_count):
+def viterbi(words, tag_counts, tag_transitions, start_transition, word_emissions, tag_caps, tag_hyphen, tag_suffixes, vocab, vocab_suffix_count):
     tags = list(tag_transitions.keys())
     vocab_size = len(vocab.keys())
 
@@ -43,9 +45,15 @@ def viterbi(words, tag_counts, tag_transitions, start_transition, word_emissions
             capitalisation = math.log2(tag_caps[tag][LOWER]/cap_count)
         else:
             capitalisation = math.log2(tag_caps[tag][SYMBOL]/cap_count)
+
+        hyphen_count = sum(tag_hyphen[tag].values())
+        if '-' in word:
+            hyphen = math.log2(tag_hyphen[tag][HYPHEN]/hyphen_count)
+        else:
+            hyphen = math.log2(tag_hyphen[tag][NO_HYPHEN]/hyphen_count)
         
         suffix = 0
-        for k in range(4, 5):
+        for k in range(5, 6):
             # TODO: try backoff instead of interpolation
             if len(word) < k: break
             # if not word[-k:].islower(): break
@@ -69,6 +77,7 @@ def viterbi(words, tag_counts, tag_transitions, start_transition, word_emissions
             math.log2(start_transition[tag]/tag_counts[START])
             + emission
             + capitalisation
+            + hyphen
             + suffix
         )
         backpointer[s][0] = 0
@@ -93,9 +102,15 @@ def viterbi(words, tag_counts, tag_transitions, start_transition, word_emissions
                 capitalisation = math.log2(tag_caps[tag][LOWER]/cap_count)
             else:
                 capitalisation = math.log2(tag_caps[tag][SYMBOL]/cap_count)
-
+            
+            hyphen_count = sum(tag_hyphen[tag].values())
+            if '-' in word:
+                hyphen = math.log2(tag_hyphen[tag][HYPHEN]/hyphen_count)
+            else:
+                hyphen = math.log2(tag_hyphen[tag][NO_HYPHEN]/hyphen_count)
+                
             suffix = 0
-            for k in range(4, 5):
+            for k in range(5, 6):
                 # TODO: try backoff instead of interpolation
                 if len(word) < k: break
                 # if not word[-k:].islower(): break
@@ -125,6 +140,7 @@ def viterbi(words, tag_counts, tag_transitions, start_transition, word_emissions
                     + math.log2(tag_transitions[tag2][tag]/tag_counts[tag2])
                     + emission
                     + capitalisation
+                    + hyphen
                     + suffix
                 )
                 if max is None or p > max: 
@@ -151,11 +167,9 @@ def viterbi(words, tag_counts, tag_transitions, start_transition, word_emissions
     for t in range(len(words)-1, -1, -1):
         word = tagged_words[t][0]
         tagged_words[t] = (word, tags[s])
-        if tags[s] == 'NN' and word[-1] == 's' and word[:-1] in vocab.keys():
-            # print(word)
-            tagged_words[t] = (word, 'NNS')
-
-        # if tag[s] == 'VB' and word[-1]
+        # if tags[s] == 'NN' and word[-1] == 's' and word[:-1] in vocab.keys():
+        #     # print(word)
+        #     tagged_words[t] = (word, 'NNS')
         s = backpointer[s][t]
     
     return tagged_words
@@ -172,8 +186,9 @@ def tag_sentence(test_file, model_file, out_file):
     start_transition = defaultdict(lambda:1, tag_transitions.pop(START))
     word_emissions = json_data['word_emissions']
     tag_caps = json_data['tag_caps']
+    tag_hyphen = json_data['tag_hyphen']
     tag_suffixes = {int(key): value for key, value in json_data['tag_suffixes'].items()}
-    for k in range(4, 5):
+    for k in range(5, 6):
         tag_suffixes[k] = defaultdict(lambda:defaultdict(lambda:1), tag_suffixes[k]) # TODO: account for tags that won't have k-length suffix
     vocab = json_data['vocab']
 
@@ -189,7 +204,7 @@ def tag_sentence(test_file, model_file, out_file):
         cur_out_line = test_lines[i].strip()
         words = cur_out_line.split(' ')
 
-        tagged_words = viterbi(words, tag_counts, tag_transitions, start_transition, word_emissions, tag_caps, tag_suffixes, vocab, vocab_suffix_count)
+        tagged_words = viterbi(words, tag_counts, tag_transitions, start_transition, word_emissions, tag_caps, tag_hyphen, tag_suffixes, vocab, vocab_suffix_count)
         # print(tagged_words)
         string = ""
         for word, tag in tagged_words:
