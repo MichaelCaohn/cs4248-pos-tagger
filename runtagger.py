@@ -21,7 +21,6 @@ NO_HYPHEN = 'NO_HYPHEN'
 DIGIT = 'DIGIT'
 NO_DIGIT = 'NO_DIGIT'
 
-# TODO: Make the number of tags constant
 
 def viterbi(
         words, tag_counts, tag_transitions, start_transition, word_emissions, 
@@ -37,6 +36,7 @@ def viterbi(
     for s in range(len(tags)):
         unseen = False
         tag = tags[s]
+
         if word not in vocab:
             emission = math.log2(word_emissions[tag][UNK]/(tag_counts[tag] * (vocab_size-len(tag_transitions[tag].keys()))))
             unseen = True
@@ -70,9 +70,8 @@ def viterbi(
         
         suffix = 0
         for k in range(4, 5):
-            # TODO: try backoff instead of interpolation
             if len(word) < k: break
-            # if not word[-k:].islower(): break
+            
             suffixes = tag_suffixes[k][tag]
             T = len(suffixes.keys())
             C = sum(suffixes.values())
@@ -86,8 +85,6 @@ def viterbi(
                     pst = math.log2(suffixes[suf]/(sum(suffixes.values()) + len(suffixes.keys())))
 
                 suffix += pst
-        
-        # suffix = math.tanh(suffix)
 
         if unseen:
             matrix[s][0] = (
@@ -102,9 +99,6 @@ def viterbi(
             matrix[s][0] = (
                 math.log2(start_transition[tag]/tag_counts[START])
                 + emission
-                # + capitalisation
-                # + hyphen
-                # + suffix
             )
         backpointer[s][0] = 0
 
@@ -113,9 +107,6 @@ def viterbi(
         for s in range(len(tags)):
             unseen = False
             tag = tags[s]
-            # print(word, tag)
-            # print(word_emissions[tag][word])
-            # print(tag_counts[tag])
 
             if word not in vocab:
                 emission = math.log2(word_emissions[tag][UNK]/(tag_counts[tag] * (vocab_size-len(tag_transitions[tag].keys()))))
@@ -150,9 +141,7 @@ def viterbi(
                 
             suffix = 0
             for k in range(4, 5):
-                # TODO: try backoff instead of interpolation
                 if len(word) < k: break
-                # if not word[-k:].islower(): break
                 
                 suffixes = tag_suffixes[k][tag]
                 T = len(suffixes.keys())
@@ -167,8 +156,6 @@ def viterbi(
                         pst = math.log2(suffixes[suf]/(sum(suffixes.values()) + len(suffixes.keys())))
 
                     suffix += pst
-            
-            # suffix = math.tanh(suffix)
             
             max = None
             argmax = None
@@ -189,9 +176,6 @@ def viterbi(
                         matrix[s2][t-1]
                         + math.log2(tag_transitions[tag2][tag]/tag_counts[tag2])
                         + emission
-                        # + capitalisation
-                        # + hyphen
-                        # + suffix
                     )
                 if max is None or p > max: 
                     max = p
@@ -217,9 +201,6 @@ def viterbi(
     for t in range(len(words)-1, -1, -1):
         word = tagged_words[t][0]
         tagged_words[t] = (word, tags[s])
-        # if tags[s] == 'NN' and word[-1] == 's' and word[:-1] in vocab.keys():
-        #     # print(word)
-        #     tagged_words[t] = (word, 'NNS')
         s = backpointer[s][t]
     
     return tagged_words
@@ -240,7 +221,7 @@ def tag_sentence(test_file, model_file, out_file):
     tag_digit = json_data['tag_digit']
     tag_suffixes = {int(key): value for key, value in json_data['tag_suffixes'].items()}
     for k in range(4, 5):
-        tag_suffixes[k] = defaultdict(lambda:defaultdict(lambda:1), tag_suffixes[k]) # TODO: account for tags that won't have k-length suffix
+        tag_suffixes[k] = defaultdict(lambda:defaultdict(lambda:1), tag_suffixes[k])
     vocab = json_data['vocab']
 
     vocab_suffix_count = {int(k):len(v.keys()) for k, v in json_data['vocab_suffix'].items()}
@@ -256,7 +237,6 @@ def tag_sentence(test_file, model_file, out_file):
         words = cur_out_line.split(' ')
 
         tagged_words = viterbi(words, tag_counts, tag_transitions, start_transition, word_emissions, tag_caps, tag_hyphen, tag_digit, tag_suffixes, vocab, vocab_suffix_count)
-        # print(tagged_words)
         string = ""
         for word, tag in tagged_words:
             string += word + "/" + tag + " "

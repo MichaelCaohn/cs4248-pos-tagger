@@ -38,14 +38,12 @@ def train_model(train_file, model_file):
     for i in range(0, len(out_lines)):
         cur_out_line = out_lines[i].strip()
         cur_out_tokens = cur_out_line.split(' ')
-        # total_count += len(cur_out_tokens)
 
         prev_tag = START
         tag_counts[START] += 1
 
         for j in range(0, len(cur_out_tokens)):
             word, _,  tag = cur_out_tokens[j].rpartition('/')
-            # word = word.lower()
             
             tag_counts[tag] += 1
             tag_transitions[prev_tag][tag] += 1
@@ -74,10 +72,8 @@ def train_model(train_file, model_file):
             
             for k in range(1, 6):
                 if len(word) < k: break
-                # if not word[-k:].islower(): break
                 tag_suffixes[k][tag][word[-k:]] += 1
                 vocab_suffix[k][word[-k:]] += 1
-
 
         tag = END
         tag_counts[END] += 1
@@ -101,10 +97,6 @@ def train_model(train_file, model_file):
         unknown_count = len(word_emissions[tag].keys()) # witten bell assumption
         tag_counts[tag] += unknown_count
         word_emissions[tag][UNK] = unknown_count
-
-    # for k in range(1, 5):
-    #     for tag, word_dict in tag_suffixes[k].items():
-    #         unknown_count = len(word_dict.keys()) # witten bell assumption
     
     
     file = open(model_file, 'w')
