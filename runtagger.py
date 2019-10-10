@@ -30,9 +30,14 @@ def viterbi(words, tag_counts, tag_transitions, start_transition, word_emissions
 
     word = words[0]
     for s in range(len(tags)):
+        unseen = False
         tag = tags[s]
-        if word not in word_emissions[tag]:
+        if word not in vocab:
             emission = math.log2(word_emissions[tag][UNK]/(tag_counts[tag] * (vocab_size-len(tag_transitions[tag].keys()))))
+            unseen = True
+        elif word not in word_emissions[tag]:
+            emission = math.log2(1/10000000000)
+            unseen = True
         else:
             emission = math.log2(word_emissions[tag][word]/tag_counts[tag])
         
@@ -53,7 +58,7 @@ def viterbi(words, tag_counts, tag_transitions, start_transition, word_emissions
             hyphen = math.log2(tag_hyphen[tag][NO_HYPHEN]/hyphen_count)
         
         suffix = 0
-        for k in range(5, 6):
+        for k in range(4, 5):
             # TODO: try backoff instead of interpolation
             if len(word) < k: break
             # if not word[-k:].islower(): break
@@ -73,26 +78,42 @@ def viterbi(words, tag_counts, tag_transitions, start_transition, word_emissions
         
         # suffix = math.tanh(suffix)
 
-        matrix[s][0] = (
-            math.log2(start_transition[tag]/tag_counts[START])
-            + emission
-            + capitalisation
-            + hyphen
-            + suffix
-        )
+        if unseen:
+            matrix[s][0] = (
+                math.log2(start_transition[tag]/tag_counts[START])
+                + emission
+                + capitalisation
+                + hyphen
+                + suffix
+            )
+        else:
+            matrix[s][0] = (
+                math.log2(start_transition[tag]/tag_counts[START])
+                + emission
+                # + capitalisation
+                # + hyphen
+                # + suffix
+            )
         backpointer[s][0] = 0
 
     for t in range(1, len(words)):
         word = words[t]
         for s in range(len(tags)):
+            unseen = False
             tag = tags[s]
             # print(word, tag)
             # print(word_emissions[tag][word])
             # print(tag_counts[tag])
-            if word not in word_emissions[tag]:
+
+            if word not in vocab:
                 emission = math.log2(word_emissions[tag][UNK]/(tag_counts[tag] * (vocab_size-len(tag_transitions[tag].keys()))))
+                unseen = True
+            elif word not in word_emissions[tag]:
+                emission = math.log2(1/10000000000)
+                unseen = True
             else:
                 emission = math.log2(word_emissions[tag][word]/tag_counts[tag])
+
             cap_count = sum(tag_caps[tag].values())
             if word.isupper():
                 capitalisation = math.log2(tag_caps[tag][ALL_UPPER]/cap_count)
@@ -110,7 +131,7 @@ def viterbi(words, tag_counts, tag_transitions, start_transition, word_emissions
                 hyphen = math.log2(tag_hyphen[tag][NO_HYPHEN]/hyphen_count)
                 
             suffix = 0
-            for k in range(5, 6):
+            for k in range(4, 5):
                 # TODO: try backoff instead of interpolation
                 if len(word) < k: break
                 # if not word[-k:].islower(): break
@@ -135,14 +156,24 @@ def viterbi(words, tag_counts, tag_transitions, start_transition, word_emissions
             argmax = None
             for s2 in range(len(tags)):
                 tag2 = tags[s2]
-                p = (
-                    matrix[s2][t-1]
-                    + math.log2(tag_transitions[tag2][tag]/tag_counts[tag2])
-                    + emission
-                    + capitalisation
-                    + hyphen
-                    + suffix
-                )
+                if unseen:    
+                    p = (
+                        matrix[s2][t-1]
+                        + math.log2(tag_transitions[tag2][tag]/tag_counts[tag2])
+                        + emission
+                        + capitalisation
+                        + hyphen
+                        + suffix
+                    )
+                else:
+                    p = (
+                        matrix[s2][t-1]
+                        + math.log2(tag_transitions[tag2][tag]/tag_counts[tag2])
+                        + emission
+                        # + capitalisation
+                        # + hyphen
+                        # + suffix
+                    )
                 if max is None or p > max: 
                     max = p
                     argmax = s2
@@ -188,7 +219,7 @@ def tag_sentence(test_file, model_file, out_file):
     tag_caps = json_data['tag_caps']
     tag_hyphen = json_data['tag_hyphen']
     tag_suffixes = {int(key): value for key, value in json_data['tag_suffixes'].items()}
-    for k in range(5, 6):
+    for k in range(4, 5):
         tag_suffixes[k] = defaultdict(lambda:defaultdict(lambda:1), tag_suffixes[k]) # TODO: account for tags that won't have k-length suffix
     vocab = json_data['vocab']
 
