@@ -17,6 +17,8 @@ LOWER = 'LOWER'
 SYMBOL = 'SYMBOL'
 HYPHEN = 'HYPHEN'
 NO_HYPHEN = 'NO_HYPHEN'
+DIGIT = 'DIGIT'
+NO_DIGIT = 'NO_DIGIT'
 
 def train_model(train_file, model_file):
     reader = open(train_file)
@@ -29,6 +31,7 @@ def train_model(train_file, model_file):
     vocab = defaultdict(lambda:0)
     tag_caps = defaultdict(lambda:defaultdict(lambda:0))
     tag_hyphen = defaultdict(lambda:defaultdict(lambda:0))
+    tag_digit = defaultdict(lambda:defaultdict(lambda:0))
     tag_suffixes = defaultdict(lambda:defaultdict(lambda:defaultdict(lambda:0)))
     vocab_suffix = defaultdict(lambda:defaultdict(lambda:0))
 
@@ -64,6 +67,11 @@ def train_model(train_file, model_file):
             else:
                 tag_hyphen[tag][NO_HYPHEN] += 1
             
+            if any(char.isdigit() for char in word):
+                tag_digit[tag][DIGIT] += 1
+            else:
+                tag_digit[tag][NO_DIGIT] += 1
+            
             for k in range(1, 6):
                 if len(word) < k: break
                 # if not word[-k:].islower(): break
@@ -85,6 +93,10 @@ def train_model(train_file, model_file):
         if tag[HYPHEN] == 0: tag[HYPHEN] = 1
         if tag[NO_HYPHEN] == 0: tag[NO_HYPHEN] = 1
 
+    for tag in tag_digit.values():
+        if tag[DIGIT] == 0: tag[DIGIT] = 1
+        if tag[NO_DIGIT] == 0: tag[DIGIT] = 1
+
     for tag in tag_counts.keys():
         unknown_count = len(word_emissions[tag].keys()) # witten bell assumption
         tag_counts[tag] += unknown_count
@@ -102,6 +114,7 @@ def train_model(train_file, model_file):
         'word_emissions':word_emissions,
         'tag_caps':tag_caps,
         'tag_hyphen':tag_hyphen,
+        'tag_digit':tag_digit,
         'tag_suffixes':tag_suffixes,
         'vocab':vocab,
         'vocab_suffix':vocab_suffix,

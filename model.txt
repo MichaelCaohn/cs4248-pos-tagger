@@ -320,6 +320,188 @@
     "WRB": 2158,
     "``": 7095
   },
+  "tag_digit": {
+    "#": {
+      "DIGIT": 1,
+      "NO_DIGIT": 142
+    },
+    "$": {
+      "DIGIT": 1,
+      "NO_DIGIT": 7372
+    },
+    "''": {
+      "DIGIT": 1,
+      "NO_DIGIT": 6919
+    },
+    ",": {
+      "DIGIT": 1,
+      "NO_DIGIT": 48726
+    },
+    "-LRB-": {
+      "DIGIT": 1,
+      "NO_DIGIT": 1366
+    },
+    "-RRB-": {
+      "DIGIT": 1,
+      "NO_DIGIT": 1376
+    },
+    ".": {
+      "DIGIT": 1,
+      "NO_DIGIT": 39478
+    },
+    ":": {
+      "DIGIT": 1,
+      "NO_DIGIT": 4772
+    },
+    "CC": {
+      "DIGIT": 1,
+      "NO_DIGIT": 23947
+    },
+    "CD": {
+      "DIGIT": 25630,
+      "NO_DIGIT": 10938
+    },
+    "DT": {
+      "DIGIT": 1,
+      "NO_DIGIT": 81842
+    },
+    "EX": {
+      "DIGIT": 1,
+      "NO_DIGIT": 863
+    },
+    "FW": {
+      "DIGIT": 1,
+      "NO_DIGIT": 234
+    },
+    "IN": {
+      "DIGIT": 1,
+      "NO_DIGIT": 98554
+    },
+    "JJ": {
+      "DIGIT": 1028,
+      "NO_DIGIT": 60189
+    },
+    "JJR": {
+      "DIGIT": 1,
+      "NO_DIGIT": 3238
+    },
+    "JJS": {
+      "DIGIT": 1,
+      "NO_DIGIT": 1947
+    },
+    "LS": {
+      "DIGIT": 20,
+      "NO_DIGIT": 16
+    },
+    "MD": {
+      "DIGIT": 1,
+      "NO_DIGIT": 9803
+    },
+    "NN": {
+      "DIGIT": 113,
+      "NO_DIGIT": 132822
+    },
+    "NNP": {
+      "DIGIT": 117,
+      "NO_DIGIT": 91349
+    },
+    "NNPS": {
+      "DIGIT": 1,
+      "NO_DIGIT": 2673
+    },
+    "NNS": {
+      "DIGIT": 147,
+      "NO_DIGIT": 59709
+    },
+    "PDT": {
+      "DIGIT": 1,
+      "NO_DIGIT": 370
+    },
+    "POS": {
+      "DIGIT": 1,
+      "NO_DIGIT": 8701
+    },
+    "PRP": {
+      "DIGIT": 1,
+      "NO_DIGIT": 17436
+    },
+    "PRP$": {
+      "DIGIT": 1,
+      "NO_DIGIT": 8407
+    },
+    "RB": {
+      "DIGIT": 3,
+      "NO_DIGIT": 30967
+    },
+    "RBR": {
+      "DIGIT": 1,
+      "NO_DIGIT": 1768
+    },
+    "RBS": {
+      "DIGIT": 1,
+      "NO_DIGIT": 451
+    },
+    "RP": {
+      "DIGIT": 1,
+      "NO_DIGIT": 2662
+    },
+    "SYM": {
+      "DIGIT": 1,
+      "NO_DIGIT": 58
+    },
+    "TO": {
+      "DIGIT": 1,
+      "NO_DIGIT": 22357
+    },
+    "UH": {
+      "DIGIT": 1,
+      "NO_DIGIT": 97
+    },
+    "VB": {
+      "DIGIT": 1,
+      "NO_DIGIT": 26438
+    },
+    "VBD": {
+      "DIGIT": 1,
+      "NO_DIGIT": 29889
+    },
+    "VBG": {
+      "DIGIT": 1,
+      "NO_DIGIT": 14846
+    },
+    "VBN": {
+      "DIGIT": 1,
+      "NO_DIGIT": 20023
+    },
+    "VBP": {
+      "DIGIT": 1,
+      "NO_DIGIT": 12491
+    },
+    "VBZ": {
+      "DIGIT": 1,
+      "NO_DIGIT": 21672
+    },
+    "WDT": {
+      "DIGIT": 1,
+      "NO_DIGIT": 4294
+    },
+    "WP": {
+      "DIGIT": 1,
+      "NO_DIGIT": 2363
+    },
+    "WP$": {
+      "DIGIT": 1,
+      "NO_DIGIT": 168
+    },
+    "WRB": {
+      "DIGIT": 1,
+      "NO_DIGIT": 2143
+    },
+    "``": {
+      "DIGIT": 1,
+      "NO_DIGIT": 7092
+    }
+  },
   "tag_hyphen": {
     "#": {
       "HYPHEN": 1,
