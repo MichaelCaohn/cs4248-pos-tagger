@@ -89,6 +89,7 @@ LEARNING_RATE = 0.01
 # Effiency:
 #   parallelise,
 # DROPOUT
+# RANDOM INITIALIZATION OF EMBEDDINGS
 
 ## MODEL
 class POSModel(nn.Module):
@@ -179,11 +180,12 @@ class POSModel(nn.Module):
 
     # print("hidden:", h0.size())
     # output, _ = self.lstm(word_rep, (h0, c0))
+    
     output, _ = self.lstm(word_rep)
     torch.set_printoptions(threshold=5000)
-    out = self.hidden2tag(output[:, -1, :])
-    # print(out.size())
-    out = F.softmax(out, dim=1)
+    out = self.hidden2tag(output.view(len(word_input), -1))
+    # out = self.hidden2tag(output[:, -1, :])
+    out = F.log_softmax(out, dim=1)
     # out = torch.argmax(out, dim=1)
     # tag_scores = F.log_softmax(tag_space, dim=1).to(device)
     return out
@@ -260,13 +262,16 @@ def train_model(train_file, model_file):
       loss.backward()
       optimizer.step()
 
+
       if (i+1) % 100 == 0:
-        print ('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}' 
-                .format(epoch+1, EPOCH, i+1, len(pairs_sentence_lines), loss.item()))
-      
-      if datetime.datetime.now() - init_time > datetime.timedelta(minutes=TIME_LIMIT_MIN, seconds=TIME_LIMIT_SEC):
-        torch.save((word_vocab, char_vocab, model.state_dict()), model_file)
-        return
+        
+        time_diff = datetime.datetime.now() - init_time 
+        if time_diff > datetime.timedelta(minutes=TIME_LIMIT_MIN, seconds=TIME_LIMIT_SEC):
+          torch.save((word_vocab, char_vocab, model.state_dict()), model_file)
+          return
+        
+        print ('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}, Time Elapsed: {}' 
+                .format(epoch+1, EPOCH, i+1, len(pairs_sentence_lines), loss.item(), time_diff))
 
       total_loss += loss.item()
 

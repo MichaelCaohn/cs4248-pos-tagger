@@ -6,6 +6,8 @@ import sys
 import torch
 from buildtagger import POSModel
 
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+print(device)
 
 TAG_TO_IX = {
   '``' : 0,
@@ -60,9 +62,6 @@ IX_TO_TAG = {ix:tag for tag, ix in TAG_TO_IX.items()}
 from collections import defaultdict
 
 def tag_sentence(test_file, model_file, out_file):
-
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    print(device)
 
     word_vocab, char_vocab, model_state_dict = torch.load(model_file)
     word_vocab, char_vocab = defaultdict(lambda:len(word_vocab), word_vocab), defaultdict(lambda:len(char_vocab), char_vocab)
