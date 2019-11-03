@@ -40,7 +40,7 @@ if __name__ == "__main__":
                 false_tag = cur_out_tags[j].rpartition('/')[2]
                 mistagged[true_tag][false_tag] += 1
                 # if true_tag == 'NN' and false_tag == 'JJ':
-                print(cur_out_tags[j], cur_ref_tags[j])
+                # print(cur_out_tags[j], cur_ref_tags[j])
                 # if true_tag == 'VBD' and cur_ref_tags[j].rpartition('/')[0][-1] != 'd':
                 #     print(cur_ref_tags[j])
 
