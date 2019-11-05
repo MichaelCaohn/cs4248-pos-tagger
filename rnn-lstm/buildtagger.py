@@ -13,7 +13,27 @@ import random
 import datetime
 from collections import defaultdict
 
+## HYPERPARAMETERS ##
+DEBUG = True
+
+WORD_VEC_DIM = 128
+CHAR_VEC_DIM = 32
+CNN_WINDOW_K = 5
+CNN_FILTERS_L = 5 # REDUCE THIS
+LSTM_FEATURES = 32 # REDUCE THIS (?)
+LSTM_LAYERS = 1
+LSTM_DROPOUT = 0 # INCREASE THIS
+
+TIME_LIMIT_MIN = 8
+TIME_LIMIT_SEC = 45
+EPOCH = 2
+LEARNING_RATE = 0.001
+
 init_time = datetime.datetime.now()
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+print(device)
+torch.set_printoptions(threshold=5000)
+torch.manual_seed(3940242394)
 
 TAG_TO_IX = {
   '``' : 0,
@@ -65,20 +85,6 @@ TAG_TO_IX = {
 
 IX_TO_TAG = {ix:tag for tag, ix in TAG_TO_IX.items()}
 
-## HYPERPARAMETERS ##
-WORD_VEC_DIM = 128
-CHAR_VEC_DIM = 24
-CNN_WINDOW_K = 3
-CNN_FILTERS_L = 5
-
-LSTM_FEATURES = 128
-LSTM_LAYERS = 1
-
-TIME_LIMIT_MIN = 9
-TIME_LIMIT_SEC = 30
-EPOCH = 5
-LEARNING_RATE = 0.01
-
 ## POTENTIAL STRATS ##
 # CNN: 
 #   padding,
@@ -86,10 +92,12 @@ LEARNING_RATE = 0.01
 #   stride length, 
 #   combine instead of max pool, 
 #   activation function
-# Effiency:
-#   parallelise,
 # DROPOUT
 # RANDOM INITIALIZATION OF EMBEDDINGS
+# UNKNOWN WORDS
+# ADAM
+# INIT HIDDEN
+# FLATTEN PARAMETERS
 
 ## MODEL
 class POSModel(nn.Module):
@@ -99,23 +107,23 @@ class POSModel(nn.Module):
 
     self.word_vocab = word_vocab
     self.char_vocab = char_vocab
-    self.word_embeddings = nn.Embedding(len(self.word_vocab) + 1, WORD_VEC_DIM, padding_idx=len(self.word_vocab))
-    self.char_embeddings = nn.Embedding(len(self.char_vocab) + 1, CHAR_VEC_DIM, padding_idx=len(self.char_vocab))
+    self.word_embeddings = nn.Embedding(len(self.word_vocab) + 1, WORD_VEC_DIM, padding_idx=len(self.word_vocab)).to(device)
+    self.char_embeddings = nn.Embedding(len(self.char_vocab) + 1, CHAR_VEC_DIM, padding_idx=len(self.char_vocab)).to(device)
     # self.word_embeddings.weight.data.uniform_(-self.bound_generator(WORD_VEC_DIM), self.bound_generator(WORD_VEC_DIM))
     # self.char_embeddings.weight.data.uniform_(-self.bound_generator(CHAR_VEC_DIM), self.bound_generator(CHAR_VEC_DIM))
 
-    self.conv1d = nn.Conv1d(in_channels=CHAR_VEC_DIM, out_channels=CNN_FILTERS_L, kernel_size=CNN_WINDOW_K, stride=1, padding=(CNN_WINDOW_K-1)//2, bias=True)
-    self.pool = nn.AdaptiveMaxPool1d(1)
+    self.conv1d = nn.Conv1d(in_channels=CHAR_VEC_DIM, out_channels=CNN_FILTERS_L, kernel_size=CNN_WINDOW_K, stride=1, padding=(CNN_WINDOW_K-1)//2, bias=True).to(device)
+    self.pool = nn.AdaptiveMaxPool1d(1).to(device)
 
     self.lstm = nn.LSTM(
       input_size=WORD_VEC_DIM+CNN_FILTERS_L,
       hidden_size=LSTM_FEATURES,
       num_layers=LSTM_LAYERS,
-      dropout=0,
+      dropout=LSTM_DROPOUT,
       bidirectional=True
-    )
+    ).to(device)
 
-    self.hidden2tag = nn.Linear(LSTM_FEATURES * 2, len(TAG_TO_IX))
+    self.hidden2tag = nn.Linear(LSTM_FEATURES * 2, len(TAG_TO_IX)).to(device)
   
   # def init_hidden(self, batch_size):
   #   weight = next(self.parameters()).data
@@ -123,57 +131,32 @@ class POSModel(nn.Module):
   #           weight.new(LSTM_LAYERS, batch_size, WORD_VEC_DIM+CNN_FILTERS_L).zero_())
 
   def forward(self, word_sentence):
-    
-    # construct list of tensors representing word indices
-    # word_embeds = torch.Tensor()
-    # for word in word_sentence:
-    #   if word not in self.word_vocab:
-    #     word_embeds = torch.cat((word_embeds, self.random_init(self.rand_generator, WORD_VEC_DIM)), dim=0)
-    #   else:
-    #     word_embeds = torch.cat((word_embeds, self.word_embeddings(torch.LongTensor([self.word_vocab[word]]))), dim=0)
-    # word_embeds = word_embeds.unsqueeze(0)
-    # print(word_embeds.size())
-
-    # char_cnn_out = []
-    # for word in word_sentence:
-    #   char_embeds = torch.Tensor()
-    #   for char in word:
-    #     if char not in self.char_vocab:
-    #       char_embeds = torch.cat((char_embeds, self.random_init(self.random_init, CHAR_VEC_DIM)), dim=0)
-    #     else:
-    #       char_embeds = torch.cat((char_embeds, self.char_embeddings(torch.LongTensor([self.char_vocab[char]]))), dim=0)
-    #   char_embeds = char_embeds.transpose(0, 1).unsqueeze(0)
-    #   print(char_embeds.size())
-    #   x = self.conv1d(char_embeds)
-    #   x = self.pool(x)
-    #   char_cnn_out.append(x.transpose(1, 2))
-    
 
     # input: len(sentence) * 1
     # output: len(sentence) * WORD_VEC_DIM
-    word_input = torch.LongTensor([len(self.word_vocab) if word not in self.word_vocab else self.word_vocab[word] for word in word_sentence])
-    word_embeds = self.word_embeddings(word_input).unsqueeze(0)
+    word_input = torch.LongTensor([len(self.word_vocab) if word not in self.word_vocab else self.word_vocab[word] for word in word_sentence]).to(device)
+    word_embeds = self.word_embeddings(word_input).unsqueeze(0).to(device)
     
     # construct list of list of tensors representing char indices
-    char_input = [torch.LongTensor([len(self.char_vocab) if char not in self.char_vocab else self.char_vocab[char] for char in word]) for word in word_sentence]
+    char_input = [torch.LongTensor([len(self.char_vocab) if char not in self.char_vocab else self.char_vocab[char] for char in word]).to(device) for word in word_sentence]
     # input: len(sentence) * len(word)
     # output: len(sentence) * CNN_FILTERS_L
     char_cnn_out = []
     for char_sequence in char_input:
 
-      char_embeds = self.char_embeddings(char_sequence).transpose(0, 1).unsqueeze(0)
+      char_embeds = self.char_embeddings(char_sequence).transpose(0, 1).unsqueeze(0).to(device)
 
       # input: len(word) * CHAR_VEC_DIM
-      x = self.conv1d(char_embeds)
+      x = self.conv1d(char_embeds).to(device)
 
       # input: (len(word)) * CNN_FILTERS_L
       # output: CNN_FILTERS_L * 1
-      x = self.pool(x)
+      x = self.pool(x).to(device)
   
       char_cnn_out.append(x.transpose(1, 2))
-    char_cnn_out = torch.cat(char_cnn_out, dim=1)
+    char_cnn_out = torch.cat(char_cnn_out, dim=1).to(device)
     
-    word_rep = torch.cat((word_embeds, char_cnn_out), dim=2).transpose(0, 1)
+    word_rep = torch.cat((word_embeds, char_cnn_out), dim=2).transpose(0, 1).to(device)
 
     # h0 = torch.zeros(LSTM_LAYERS*2, word_rep.size(1), LSTM_FEATURES) # 2 for bidirection 
     # c0 = torch.zeros(LSTM_LAYERS*2, word_rep.size(1), LSTM_FEATURES)
@@ -181,11 +164,11 @@ class POSModel(nn.Module):
     # print("hidden:", h0.size())
     # output, _ = self.lstm(word_rep, (h0, c0))
     
+    self.lstm.flatten_parameters()
     output, _ = self.lstm(word_rep)
-    torch.set_printoptions(threshold=5000)
     out = self.hidden2tag(output.view(len(word_input), -1))
     # out = self.hidden2tag(output[:, -1, :])
-    out = F.log_softmax(out, dim=1)
+    # out = F.log_softmax(out, dim=1)
     # out = torch.argmax(out, dim=1)
     # tag_scores = F.log_softmax(tag_space, dim=1).to(device)
     return out
@@ -239,7 +222,8 @@ def train_model(train_file, model_file):
   losses = []
   loss_function = nn.CrossEntropyLoss()
   model = POSModel(word_vocab, char_vocab)
-  optimizer = optim.SGD(params=model.parameters(), lr=LEARNING_RATE)
+  # optimizer = optim.SGD(params=model.parameters(), lr=LEARNING_RATE)
+  optimizer = optim.Adam(params=model.parameters(), lr=LEARNING_RATE)
 
   for epoch in range(EPOCH):
     total_loss = 0
@@ -252,12 +236,12 @@ def train_model(train_file, model_file):
 
       # hidden = model.init_hidden(1)
 
-      output = model(word_sentence)
+      output = model(word_sentence).to(device)
 
       # print(output.size())
       # print(torch.LongTensor(tag_sentence).size())
 
-      loss = loss_function(output, torch.LongTensor(tag_sentence))
+      loss = loss_function(output, torch.LongTensor(tag_sentence).to(device)).to(device)
 
       loss.backward()
       optimizer.step()
@@ -270,30 +254,13 @@ def train_model(train_file, model_file):
           torch.save((word_vocab, char_vocab, model.state_dict()), model_file)
           return
         
-        print ('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}, Time Elapsed: {}' 
+        if DEBUG: print ('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}, Time Elapsed: {}' 
                 .format(epoch+1, EPOCH, i+1, len(pairs_sentence_lines), loss.item(), time_diff))
 
       total_loss += loss.item()
 
     losses.append(total_loss)
-
-  
-  
-        
-
-    # 1. Construct separate sentence embedding
-    # word_embedding = word_embeddings[sentence]
-
-    # 2. Construct character embeddings via CNN
-    # char_embedding = [char_embeddings[char] for char in sentence]
-
-    # 3. Concat to get input representation
-
-    # 4. Construct bi-directional LSTM
-
-    # 5. Linear projection
-
-    # 6. Softmax
+    torch.save((word_vocab, char_vocab, model.state_dict()), model_file)
 
   print('Finished...')
 		

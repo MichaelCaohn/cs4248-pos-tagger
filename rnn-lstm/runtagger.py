@@ -7,6 +7,7 @@ import torch
 from buildtagger import POSModel
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+# device = torch.device("cpu")
 print(device)
 
 TAG_TO_IX = {
@@ -78,8 +79,8 @@ def tag_sentence(test_file, model_file, out_file):
         cur_out_line = test_lines[i].strip()
         words = cur_out_line.split(' ')
 
-        output = model(words)
-        output = torch.argmax(output, dim=1)
+        output = model(words).to(device)
+        output = torch.argmax(output, dim=1).to(device)
         tags = [IX_TO_TAG[idx] for idx in output.tolist()]
        
         string = ""
