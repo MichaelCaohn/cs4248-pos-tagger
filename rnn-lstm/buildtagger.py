@@ -14,18 +14,18 @@ import datetime
 from collections import defaultdict
 
 ## HYPERPARAMETERS ##
-DEBUG = True
+DEBUG = False
 
 WORD_VEC_DIM = 128
 CHAR_VEC_DIM = 32
-CNN_WINDOW_K = 5
+CNN_WINDOW_K = 3
 CNN_FILTERS_L = 5 # REDUCE THIS
-LSTM_FEATURES = 32 # REDUCE THIS (?)
+LSTM_FEATURES = 64 # REDUCE THIS (?)
 LSTM_LAYERS = 1
 LSTM_DROPOUT = 0 # INCREASE THIS
 
-TIME_LIMIT_MIN = 8
-TIME_LIMIT_SEC = 45
+TIME_LIMIT_MIN = 9
+TIME_LIMIT_SEC = 0
 EPOCH = 2
 LEARNING_RATE = 0.001
 
@@ -107,8 +107,10 @@ class POSModel(nn.Module):
 
     self.word_vocab = word_vocab
     self.char_vocab = char_vocab
-    self.word_embeddings = nn.Embedding(len(self.word_vocab) + 1, WORD_VEC_DIM, padding_idx=len(self.word_vocab)).to(device)
-    self.char_embeddings = nn.Embedding(len(self.char_vocab) + 1, CHAR_VEC_DIM, padding_idx=len(self.char_vocab)).to(device)
+    self.word_vocab_length = len(word_vocab)
+    self.char_vocab_length = len(char_vocab)
+    self.word_embeddings = nn.Embedding(self.word_vocab_length + 1, WORD_VEC_DIM, padding_idx=len(self.word_vocab)).to(device)
+    self.char_embeddings = nn.Embedding(self.char_vocab_length + 1, CHAR_VEC_DIM, padding_idx=len(self.char_vocab)).to(device)
     # self.word_embeddings.weight.data.uniform_(-self.bound_generator(WORD_VEC_DIM), self.bound_generator(WORD_VEC_DIM))
     # self.char_embeddings.weight.data.uniform_(-self.bound_generator(CHAR_VEC_DIM), self.bound_generator(CHAR_VEC_DIM))
 
@@ -134,29 +136,40 @@ class POSModel(nn.Module):
 
     # input: len(sentence) * 1
     # output: len(sentence) * WORD_VEC_DIM
-    word_input = torch.LongTensor([len(self.word_vocab) if word not in self.word_vocab else self.word_vocab[word] for word in word_sentence]).to(device)
-    word_embeds = self.word_embeddings(word_input).unsqueeze(0).to(device)
+    word_input = torch.LongTensor([self.word_vocab_length if word not in self.word_vocab else self.word_vocab[word] for word in word_sentence]).to(device)
+    word_embeds = self.word_embeddings(word_input).unsqueeze(1).to(device)
     
     # construct list of list of tensors representing char indices
     char_input = [torch.LongTensor([len(self.char_vocab) if char not in self.char_vocab else self.char_vocab[char] for char in word]).to(device) for word in word_sentence]
+    
     # input: len(sentence) * len(word)
     # output: len(sentence) * CNN_FILTERS_L
-    char_cnn_out = []
-    for char_sequence in char_input:
 
-      char_embeds = self.char_embeddings(char_sequence).transpose(0, 1).unsqueeze(0).to(device)
+    char_input = nn.utils.rnn.pad_sequence(char_input, batch_first=True, padding_value=self.char_vocab_length)
 
-      # input: len(word) * CHAR_VEC_DIM
-      x = self.conv1d(char_embeds).to(device)
+    char_embeds = self.char_embeddings(char_input).transpose(1,2).to(device)
 
-      # input: (len(word)) * CNN_FILTERS_L
-      # output: CNN_FILTERS_L * 1
-      x = self.pool(x).to(device)
+    x = self.conv1d(char_embeds).to(device)
+
+    x = self.pool(x).transpose(1,2).to(device)
+
+
+    # char_cnn_out = []
+    # for char_sequence in char_input:
+
+    #   char_embeds = self.char_embeddings(char_sequence).transpose(0, 1).unsqueeze(0).to(device)
+
+    #   # input: len(word) * CHAR_VEC_DIM
+    #   x = self.conv1d(char_embeds).to(device)
+
+    #   # input: (len(word)) * CNN_FILTERS_L
+    #   # output: CNN_FILTERS_L * 1
+    #   x = self.pool(x).to(device)
   
-      char_cnn_out.append(x.transpose(1, 2))
-    char_cnn_out = torch.cat(char_cnn_out, dim=1).to(device)
+    #   char_cnn_out.append(x.transpose(1, 2))
+    # char_cnn_out = torch.cat(char_cnn_out, dim=1).to(device)
     
-    word_rep = torch.cat((word_embeds, char_cnn_out), dim=2).transpose(0, 1).to(device)
+    word_rep = torch.cat((word_embeds, x), dim=2).to(device)
 
     # h0 = torch.zeros(LSTM_LAYERS*2, word_rep.size(1), LSTM_FEATURES) # 2 for bidirection 
     # c0 = torch.zeros(LSTM_LAYERS*2, word_rep.size(1), LSTM_FEATURES)
