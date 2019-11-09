@@ -19,10 +19,10 @@ DEBUG = False
 WORD_VEC_DIM = 128
 CHAR_VEC_DIM = 32
 CNN_WINDOW_K = 3
-CNN_FILTERS_L = 5 # REDUCE THIS
-LSTM_FEATURES = 64 # REDUCE THIS (?)
+CNN_FILTERS_L = 32 
+LSTM_FEATURES = 64 
 LSTM_LAYERS = 1
-LSTM_DROPOUT = 0 # INCREASE THIS
+LSTM_DROPOUT = 0 
 
 TIME_LIMIT_MIN = 9
 TIME_LIMIT_SEC = 0
@@ -31,7 +31,7 @@ LEARNING_RATE = 0.001
 
 init_time = datetime.datetime.now()
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-print(device)
+if DEBUG: print(device)
 torch.set_printoptions(threshold=5000)
 torch.manual_seed(3940242394)
 
@@ -111,8 +111,6 @@ class POSModel(nn.Module):
     self.char_vocab_length = len(char_vocab)
     self.word_embeddings = nn.Embedding(self.word_vocab_length + 1, WORD_VEC_DIM, padding_idx=len(self.word_vocab)).to(device)
     self.char_embeddings = nn.Embedding(self.char_vocab_length + 1, CHAR_VEC_DIM, padding_idx=len(self.char_vocab)).to(device)
-    # self.word_embeddings.weight.data.uniform_(-self.bound_generator(WORD_VEC_DIM), self.bound_generator(WORD_VEC_DIM))
-    # self.char_embeddings.weight.data.uniform_(-self.bound_generator(CHAR_VEC_DIM), self.bound_generator(CHAR_VEC_DIM))
 
     self.conv1d = nn.Conv1d(in_channels=CHAR_VEC_DIM, out_channels=CNN_FILTERS_L, kernel_size=CNN_WINDOW_K, stride=1, padding=(CNN_WINDOW_K-1)//2, bias=True).to(device)
     self.pool = nn.AdaptiveMaxPool1d(1).to(device)
@@ -127,82 +125,29 @@ class POSModel(nn.Module):
 
     self.hidden2tag = nn.Linear(LSTM_FEATURES * 2, len(TAG_TO_IX)).to(device)
   
-  # def init_hidden(self, batch_size):
-  #   weight = next(self.parameters()).data
-  #   return (weight.new(LSTM_LAYERS, batch_size, WORD_VEC_DIM+CNN_FILTERS_L).zero_(),
-  #           weight.new(LSTM_LAYERS, batch_size, WORD_VEC_DIM+CNN_FILTERS_L).zero_())
-
   def forward(self, word_sentence):
 
-    # input: len(sentence) * 1
-    # output: len(sentence) * WORD_VEC_DIM
     word_input = torch.LongTensor([self.word_vocab_length if word not in self.word_vocab else self.word_vocab[word] for word in word_sentence]).to(device)
     word_embeds = self.word_embeddings(word_input).unsqueeze(1).to(device)
     
-    # construct list of list of tensors representing char indices
     char_input = [torch.LongTensor([len(self.char_vocab) if char not in self.char_vocab else self.char_vocab[char] for char in word]).to(device) for word in word_sentence]
-    
-    # input: len(sentence) * len(word)
-    # output: len(sentence) * CNN_FILTERS_L
 
     char_input = nn.utils.rnn.pad_sequence(char_input, batch_first=True, padding_value=self.char_vocab_length)
 
     char_embeds = self.char_embeddings(char_input).transpose(1,2).to(device)
 
-    x = self.conv1d(char_embeds).to(device)
+    char_rep = self.conv1d(char_embeds).to(device)
 
-    x = self.pool(x).transpose(1,2).to(device)
+    char_rep = self.pool(char_rep).transpose(1,2).to(device)
 
+    word_rep = torch.cat((word_embeds, char_rep), dim=2).to(device)
 
-    # char_cnn_out = []
-    # for char_sequence in char_input:
-
-    #   char_embeds = self.char_embeddings(char_sequence).transpose(0, 1).unsqueeze(0).to(device)
-
-    #   # input: len(word) * CHAR_VEC_DIM
-    #   x = self.conv1d(char_embeds).to(device)
-
-    #   # input: (len(word)) * CNN_FILTERS_L
-    #   # output: CNN_FILTERS_L * 1
-    #   x = self.pool(x).to(device)
-  
-    #   char_cnn_out.append(x.transpose(1, 2))
-    # char_cnn_out = torch.cat(char_cnn_out, dim=1).to(device)
-    
-    word_rep = torch.cat((word_embeds, x), dim=2).to(device)
-
-    # h0 = torch.zeros(LSTM_LAYERS*2, word_rep.size(1), LSTM_FEATURES) # 2 for bidirection 
-    # c0 = torch.zeros(LSTM_LAYERS*2, word_rep.size(1), LSTM_FEATURES)
-
-    # print("hidden:", h0.size())
-    # output, _ = self.lstm(word_rep, (h0, c0))
     
     self.lstm.flatten_parameters()
     output, _ = self.lstm(word_rep)
     out = self.hidden2tag(output.view(len(word_input), -1))
-    # out = self.hidden2tag(output[:, -1, :])
-    # out = F.log_softmax(out, dim=1)
-    # out = torch.argmax(out, dim=1)
-    # tag_scores = F.log_softmax(tag_space, dim=1).to(device)
     return out
 
-  ## HELPER FUNCTIONS ##
-  def rand_generator(self, dimensions):
-    yield random.uniform(-math.sqrt(6)/math.sqrt(dimensions), math.sqrt(6)/math.sqrt(dimensions))
-
-  def bound_generator(self, dimensions):
-    return math.sqrt(6)/math.sqrt(dimensions)
-
-  def random_init(self, generator, dimensions):
-    """
-    Returns array of dimensions with values initialized between
-    [-sqrt(6)/sqrt(d), sqrt(6)/sqrt(d)]
-    """
-    return [generator(dimensions) for i in range(dimensions)]
-
-
-# word_embeddings = defaultdict(lambda: random_init(RAND_GENERATOR, WORD_VEC_DIM))
-# char_embeddings = defaultdict(lambda: random_init(RAND_GENERATOR, CHAR_VEC_DIM))
 
 def train_model(train_file, model_file):
   # use torch library to save model parameters, hyperparameters, etc. to model_file
@@ -235,7 +180,7 @@ def train_model(train_file, model_file):
   losses = []
   loss_function = nn.CrossEntropyLoss()
   model = POSModel(word_vocab, char_vocab)
-  # optimizer = optim.SGD(params=model.parameters(), lr=LEARNING_RATE)
+
   optimizer = optim.Adam(params=model.parameters(), lr=LEARNING_RATE)
 
   for epoch in range(EPOCH):
@@ -243,19 +188,10 @@ def train_model(train_file, model_file):
     for i, pair_sentence in enumerate(pairs_sentence_lines):
       
       word_sentence, tag_sentence = zip(*pair_sentence)
-
       model.zero_grad()
-      # optimizer.zero_grad() https://algorithmia.com/blog/convolutional-neural-nets-in-pytorch
-
-      # hidden = model.init_hidden(1)
 
       output = model(word_sentence).to(device)
-
-      # print(output.size())
-      # print(torch.LongTensor(tag_sentence).size())
-
       loss = loss_function(output, torch.LongTensor(tag_sentence).to(device)).to(device)
-
       loss.backward()
       optimizer.step()
 
@@ -263,11 +199,13 @@ def train_model(train_file, model_file):
       if (i+1) % 100 == 0:
         
         time_diff = datetime.datetime.now() - init_time 
+        
         if time_diff > datetime.timedelta(minutes=TIME_LIMIT_MIN, seconds=TIME_LIMIT_SEC):
           torch.save((word_vocab, char_vocab, model.state_dict()), model_file)
           return
         
-        if DEBUG: print ('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}, Time Elapsed: {}' 
+        if DEBUG: 
+          print ('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}, Time Elapsed: {}' 
                 .format(epoch+1, EPOCH, i+1, len(pairs_sentence_lines), loss.item(), time_diff))
 
       total_loss += loss.item()
