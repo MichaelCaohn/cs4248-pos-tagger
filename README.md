@@ -6,12 +6,12 @@ The code in this repo was written haphazardly as I was trying to optimise for ac
 
 ---
 
-### Programming Assignment 1: Viterbi Algorithm (Hidden Markov Models)
+### Programming Assignment 1: Viterbi Algorithm (Hidden Markov Model)
 Test Set Accuracy: **96.33%**  
 Blind Test Set Accuracy: **95.82%**  
 ### Programming Assignment 2: CNN with Bi-directional LSTM  
 Test Set Accuracy (Codecrunch): **96.51%**  
-Blind Test Set Accuracy (Codecrunch): **?%**  
+Blind Test Set Accuracy (Codecrunch): **96.16%**  
   
 _Note: The trainer executes for 9 minutes regardless of progress, and as such the amount of training performed (and in turn accuracy) is highly dependent on hardware resources._
 ## Usage
